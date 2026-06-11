@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,16 +12,16 @@ body{
     padding:20px;
 }
 .container{
-    max-width:800px;
+    max-width:900px;
     margin:auto;
-    background:#fff;
+    background:white;
     padding:20px;
     border-radius:10px;
 }
 input{
     width:100%;
     padding:10px;
-    margin-bottom:10px;
+    margin-bottom:15px;
 }
 button{
     width:100%;
@@ -30,42 +30,50 @@ button{
 }
 .card{
     background:#f8f8f8;
-    padding:10px;
-    margin-top:10px;
+    padding:15px;
+    margin-top:15px;
     border-radius:8px;
 }
+h2{
+    margin-top:0;
+}
 </style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
 </head>
 <body>
 
 <div class="container">
 
-<h2>AffAnalyzer</h2>
+<h2>AffAnalyzer CSV</h2>
 
-<label>Spend Meta Ads (Rp)</label>
-<input type="number" id="spend">
+<label>Meta Ads CSV</label>
+<input type="file" id="metaCsv" accept=".csv">
 
-<label>Klik Meta Ads</label>
-<input type="number" id="metaClick">
+<label>Shopee Click Report CSV</label>
+<input type="file" id="clickCsv" accept=".csv">
 
-<label>Klik Shopee</label>
-<input type="number" id="shopeeClick">
+<label>Affiliate Commission CSV</label>
+<input type="file" id="commissionCsv" accept=".csv">
 
-<label>Pesanan</label>
-<input type="number" id="orders">
-
-<label>Komisi Shopee (Rp)</label>
-<input type="number" id="commission">
-
-<button onclick="hitung()">Hitung KPI</button>
+<button onclick="prosesData()">Hitung KPI</button>
 
 <div class="card">
-<h3>Hasil</h3>
+<h3>Hasil KPI</h3>
 
-<p>CPC Meta: <span id="cpc">-</span></p>
-<p>Conversion Rate: <span id="cr">-</span></p>
-<p>Profit: <span id="profit">-</span></p>
-<p>ROI: <span id="roi">-</span></p>
+<p>Spend Meta : <b id="spend">-</b></p>
+<p>Klik Meta : <b id="klikMeta">-</b></p>
+<p>Klik Shopee : <b id="klikShopee">-</b></p>
+<p>Pesanan : <b id="pesanan">-</b></p>
+<p>Komisi : <b id="komisi">-</b></p>
+
+<hr>
+
+<p>CPC Meta : <b id="cpc">-</b></p>
+<p>Conversion Rate : <b id="cr">-</b></p>
+<p>Profit : <b id="profit">-</b></p>
+<p>ROI : <b id="roi">-</b></p>
 
 </div>
 
@@ -73,27 +81,137 @@ button{
 
 <script>
 
-function rupiah(n){
-    return "Rp " + Number(n).toLocaleString("id-ID");
+function rupiah(x){
+    return "Rp " + Number(x).toLocaleString("id-ID");
 }
 
-function hitung(){
+function parseFile(fileInput){
 
-let spend = Number(document.getElementById("spend").value);
-let metaClick = Number(document.getElementById("metaClick").value);
-let shopeeClick = Number(document.getElementById("shopeeClick").value);
-let orders = Number(document.getElementById("orders").value);
-let commission = Number(document.getElementById("commission").value);
+    return new Promise((resolve,reject)=>{
 
-let cpc = metaClick ? spend/metaClick : 0;
-let cr = shopeeClick ? (orders/shopeeClick)*100 : 0;
-let profit = commission - spend;
-let roi = spend ? ((profit/spend)*100) : 0;
+        const file = fileInput.files[0];
 
-document.getElementById("cpc").innerHTML = rupiah(cpc.toFixed(0));
-document.getElementById("cr").innerHTML = cr.toFixed(2) + "%";
-document.getElementById("profit").innerHTML = rupiah(profit.toFixed(0));
-document.getElementById("roi").innerHTML = roi.toFixed(2) + "%";
+        if(!file){
+            reject("File belum dipilih");
+            return;
+        }
+
+        Papa.parse(file,{
+            header:true,
+            skipEmptyLines:true,
+            complete:function(results){
+                resolve(results.data);
+            }
+        });
+
+    });
+
+}
+
+async function prosesData(){
+
+try{
+
+const metaRows =
+await parseFile(document.getElementById("metaCsv"));
+
+const clickRows =
+await parseFile(document.getElementById("clickCsv"));
+
+const commissionRows =
+await parseFile(document.getElementById("commissionCsv"));
+
+let spend = 0;
+let klikMeta = 0;
+
+metaRows.forEach(row=>{
+
+    const spendValue =
+        parseFloat(
+            String(row["Jumlah yang dibelanjakan (IDR)"] || "0")
+            .replace(/,/g,"")
+        ) || 0;
+
+    const clickValue =
+        parseFloat(
+            String(row["Klik Tautan Unik"] || "0")
+            .replace(/,/g,"")
+        ) || 0;
+
+    spend += spendValue;
+    klikMeta += clickValue;
+
+});
+
+const klikShopee = clickRows.length;
+
+const pesanan = commissionRows.length;
+
+let komisi = 0;
+
+commissionRows.forEach(row=>{
+
+    const nilai =
+        parseFloat(
+            String(row["Komisi Bersih Affiliate (Rp)"] || "0")
+            .replace(/,/g,"")
+        ) || 0;
+
+    komisi += nilai;
+
+});
+
+const cpc =
+klikMeta > 0
+? spend / klikMeta
+: 0;
+
+const cr =
+klikShopee > 0
+? (pesanan / klikShopee) * 100
+: 0;
+
+const profit =
+komisi - spend;
+
+const roi =
+spend > 0
+? (profit / spend) * 100
+: 0;
+
+document.getElementById("spend").innerHTML =
+rupiah(spend.toFixed(0));
+
+document.getElementById("klikMeta").innerHTML =
+klikMeta.toLocaleString("id-ID");
+
+document.getElementById("klikShopee").innerHTML =
+klikShopee.toLocaleString("id-ID");
+
+document.getElementById("pesanan").innerHTML =
+pesanan.toLocaleString("id-ID");
+
+document.getElementById("komisi").innerHTML =
+rupiah(komisi.toFixed(0));
+
+document.getElementById("cpc").innerHTML =
+rupiah(cpc.toFixed(0));
+
+document.getElementById("cr").innerHTML =
+cr.toFixed(2) + "%";
+
+document.getElementById("profit").innerHTML =
+rupiah(profit.toFixed(0));
+
+document.getElementById("roi").innerHTML =
+roi.toFixed(2) + "%";
+
+}
+catch(err){
+
+alert(err);
+
+}
 
 }
 
