@@ -1,0 +1,1 @@
+Upload semua file ke GitHub Pages dan buka index.html
