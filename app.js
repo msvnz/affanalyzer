@@ -25,13 +25,42 @@ const app = {
     },
 
     setupEventListeners() {
-        // File uploads
-        document.getElementById('metaAdsFile')?.addEventListener('change', e => this.handleMetaAdsUpload(e));
-        document.getElementById('shopeeClicksFile')?.addEventListener('change', e => this.handleShopeeClicksUpload(e));
-        document.getElementById('shopeeCommissionFile')?.addEventListener('change', e => this.handleShopeeCommissionUpload(e));
+        document.getElementById('metaAdsFile')?.addEventListener('change', (e) => handleMetaAdsUpload(e));
+        document.getElementById('shopeeClicksFile')?.addEventListener('change', (e) => handleShopeeClicksUpload(e));
+        document.getElementById('shopeeCommissionFile')?.addEventListener('change', (e) => handleShopeeCommissionUpload(e));
+        document.getElementById('importFileInput')?.addEventListener('change', (e) => handleImportBackup(e));
+    },
+
+    updateDashboard() {
+        const today = new Date().toISOString().split('T')[0];
+        const todayReport = app.reports.find(r => r.date === today);
+        const metrics = todayReport ? calculateMetrics(todayReport) : {
+            totalSpend: 0,
+            totalClicks: 0,
+            cpc: 0,
+            cr: 0,
+            profit: 0,
+            roi: 0,
+            totalCommission: 0
+        };
+
+        document.getElementById('todaySpend').textContent = formatCurrency(metrics.totalSpend);
+        document.getElementById('todayCommission').textContent = formatCurrency(metrics.totalCommission);
+        document.getElementById('todayProfit').textContent = formatCurrency(metrics.profit);
+        document.getElementById('todayProfitStatus').textContent = metrics.profit >= 0 ? 
+            `<i class="fas fa-arrow-up"></i> Profit` : `<i class="fas fa-arrow-down"></i> Rugi`;
+        document.getElementById('todayROI').textContent = metrics.roi.toFixed(2) + '%';
         
-        // Import file
-        document.getElementById('importFileInput')?.addEventListener('change', e => this.handleImportBackup(e));
+        document.getElementById('todayMetaClicks').textContent = todayReport?.metaClicks || 0;
+        document.getElementById('todayCPC').textContent = formatCurrency(metrics.cpc);
+        document.getElementById('todayShopeeClicks').textContent = todayReport?.shopeeClicks || 0;
+        document.getElementById('todayOrders').textContent = todayReport?.orders || 0;
+        document.getElementById('todayCR').textContent = metrics.cr.toFixed(2) + '%';
+        document.getElementById('totalReports').textContent = app.reports.length;
+
+        updateReportsTable();
+        updateMonthlyData();
+        updateCharts();
     }
 };
 
@@ -41,6 +70,8 @@ const app = {
 
 function parseCSV(text) {
     const lines = text.trim().split('\n');
+    if (lines.length === 0) return [];
+    
     const headers = lines[0].split(',').map(h => h.trim());
     const data = [];
 
@@ -61,20 +92,16 @@ function parseCSV(text) {
 }
 
 function normalizeDate(dateStr) {
-    // Handle various date formats
     if (!dateStr) return null;
     
-    // Try YYYY-MM-DD
     if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
     
-    // Try DD/MM/YYYY or MM/DD/YYYY
     const parts = dateStr.split('/');
     if (parts.length === 3) {
         let year = parts[2];
         let month = parts[1];
         let day = parts[0];
         
-        // Assume DD/MM/YYYY if first part > 12
         if (parseInt(parts[0]) > 12) {
             day = parts[0];
             month = parts[1];
@@ -87,7 +114,6 @@ function normalizeDate(dateStr) {
         return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
     }
     
-    // Try parsing as date string
     try {
         const date = new Date(dateStr);
         if (!isNaN(date)) {
@@ -98,7 +124,7 @@ function normalizeDate(dateStr) {
     return null;
 }
 
-app.handleMetaAdsUpload = function(e) {
+function handleMetaAdsUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -108,16 +134,16 @@ app.handleMetaAdsUpload = function(e) {
             const data = parseCSV(event.target.result);
             const statusEl = document.getElementById('metaAdsStatus');
             
+            let count = 0;
             data.forEach(row => {
-                // Look for date column (various possible names)
                 const dateKey = Object.keys(row).find(k => 
-                    k.toLowerCase().includes('date') || k.toLowerCase().includes('date')
+                    k.toLowerCase().includes('date')
                 );
                 const spendKey = Object.keys(row).find(k => 
                     k.toLowerCase().includes('spend') || k.toLowerCase().includes('cost') || k.toLowerCase().includes('biaya')
                 );
                 const clicksKey = Object.keys(row).find(k => 
-                    k.toLowerCase().includes('click') || k.toLowerCase().includes('clk')
+                    k.toLowerCase().includes('click') || k.toLowerCase().includes('clk') || k.toLowerCase().includes('link')
                 );
 
                 if (dateKey && spendKey && clicksKey) {
@@ -132,12 +158,13 @@ app.handleMetaAdsUpload = function(e) {
                         
                         report.metaSpend = parseFloat(row[spendKey]) || 0;
                         report.metaClicks = parseInt(row[clicksKey]) || 0;
+                        count++;
                     }
                 }
             });
 
             app.saveData();
-            statusEl.innerHTML = `<i class="fas fa-check-circle text-success"></i> ${data.length} baris diproses`;
+            statusEl.innerHTML = `<i class="fas fa-check-circle text-success"></i> ${count} baris diproses`;
             e.target.value = '';
         } catch (error) {
             document.getElementById('metaAdsStatus').innerHTML = 
@@ -145,9 +172,9 @@ app.handleMetaAdsUpload = function(e) {
         }
     };
     reader.readAsText(file);
-};
+}
 
-app.handleShopeeClicksUpload = function(e) {
+function handleShopeeClicksUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -157,8 +184,8 @@ app.handleShopeeClicksUpload = function(e) {
             const data = parseCSV(event.target.result);
             const statusEl = document.getElementById('shopeeClicksStatus');
             
+            let count = 0;
             data.forEach(row => {
-                // Shopee uses Chinese headers
                 const dateKey = Object.keys(row).find(k => 
                     k.includes('日期') || k.toLowerCase().includes('date')
                 );
@@ -177,12 +204,13 @@ app.handleShopeeClicksUpload = function(e) {
                         }
                         
                         report.shopeeClicks = parseInt(row[clicksKey]) || 0;
+                        count++;
                     }
                 }
             });
 
             app.saveData();
-            statusEl.innerHTML = `<i class="fas fa-check-circle text-success"></i> ${data.length} baris diproses`;
+            statusEl.innerHTML = `<i class="fas fa-check-circle text-success"></i> ${count} baris diproses`;
             e.target.value = '';
         } catch (error) {
             document.getElementById('shopeeClicksStatus').innerHTML = 
@@ -190,9 +218,9 @@ app.handleShopeeClicksUpload = function(e) {
         }
     };
     reader.readAsText(file);
-};
+}
 
-app.handleShopeeCommissionUpload = function(e) {
+function handleShopeeCommissionUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -202,8 +230,8 @@ app.handleShopeeCommissionUpload = function(e) {
             const data = parseCSV(event.target.result);
             const statusEl = document.getElementById('shopeeCommissionStatus');
             
+            let count = 0;
             data.forEach(row => {
-                // Shopee commission headers
                 const dateKey = Object.keys(row).find(k => 
                     k.includes('日期') || k.toLowerCase().includes('date')
                 );
@@ -226,12 +254,13 @@ app.handleShopeeCommissionUpload = function(e) {
                         
                         report.orders = parseInt(row[ordersKey]) || 0;
                         report.commission = parseFloat(row[commissionKey]) || 0;
+                        count++;
                     }
                 }
             });
 
             app.saveData();
-            statusEl.innerHTML = `<i class="fas fa-check-circle text-success"></i> ${data.length} baris diproses`;
+            statusEl.innerHTML = `<i class="fas fa-check-circle text-success"></i> ${count} baris diproses`;
             e.target.value = '';
         } catch (error) {
             document.getElementById('shopeeCommissionStatus').innerHTML = 
@@ -239,7 +268,7 @@ app.handleShopeeCommissionUpload = function(e) {
         }
     };
     reader.readAsText(file);
-};
+}
 
 // ============================================
 // Report Management
@@ -276,40 +305,6 @@ function calculateMetrics(report) {
         roi,
         totalCommission
     };
-}
-
-function updateDashboard() {
-    const today = new Date().toISOString().split('T')[0];
-    const todayReport = app.reports.find(r => r.date === today);
-    const metrics = todayReport ? calculateMetrics(todayReport) : {
-        totalSpend: 0,
-        totalClicks: 0,
-        cpc: 0,
-        cr: 0,
-        profit: 0,
-        roi: 0,
-        totalCommission: 0
-    };
-
-    // Update KPI cards
-    document.getElementById('todaySpend').textContent = formatCurrency(metrics.totalSpend);
-    document.getElementById('todayCommission').textContent = formatCurrency(metrics.totalCommission);
-    document.getElementById('todayProfit').textContent = formatCurrency(metrics.profit);
-    document.getElementById('todayProfitStatus').textContent = metrics.profit >= 0 ? 
-        `<i class="fas fa-arrow-up"></i> Profit` : `<i class="fas fa-arrow-down"></i> Rugi`;
-    document.getElementById('todayROI').textContent = metrics.roi.toFixed(2) + '%';
-    
-    // Update secondary stats
-    document.getElementById('todayMetaClicks').textContent = todayReport?.metaClicks || 0;
-    document.getElementById('todayCPC').textContent = formatCurrency(metrics.cpc);
-    document.getElementById('todayShopeeClicks').textContent = todayReport?.shopeeClicks || 0;
-    document.getElementById('todayOrders').textContent = todayReport?.orders || 0;
-    document.getElementById('todayCR').textContent = metrics.cr.toFixed(2) + '%';
-    document.getElementById('totalReports').textContent = app.reports.length;
-
-    updateReportsTable();
-    updateMonthlyData();
-    updateCharts();
 }
 
 function updateReportsTable() {
@@ -424,6 +419,11 @@ function showDetailReport(reportId) {
 
 function showCreateReportModal() {
     document.getElementById('createDate').valueAsDate = new Date();
+    document.getElementById('createSpend').value = '';
+    document.getElementById('createCommission').value = '';
+    document.getElementById('createMetaClicks').value = '';
+    document.getElementById('createShopeeClicks').value = '';
+    document.getElementById('createOrders').value = '';
     new bootstrap.Modal(document.getElementById('createReportModal')).show();
 }
 
@@ -441,6 +441,7 @@ function saveCreateReport() {
     app.reports.push(report);
     app.saveData();
     bootstrap.Modal.getInstance(document.getElementById('createReportModal')).hide();
+    alert('Laporan berhasil dibuat');
 }
 
 function editCurrentReport() {
@@ -678,7 +679,7 @@ function updateSpendChart() {
         spends.push(report ? report.metaSpend : 0);
     });
 
-    createChart('spendChart', 'area', {
+    createChart('spendChart', 'line', {
         labels: last30Days.map(d => new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })),
         datasets: [{
             label: 'Spend Harian (Rp)',
@@ -758,19 +759,7 @@ function createChart(canvasId, type, config) {
             },
             scales: {
                 y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            if (type === 'bar' || type === 'line') {
-                                if (config.datasets[0]?.label?.includes('(Rp)')) {
-                                    return formatCurrency(value);
-                                } else if (config.datasets[0]?.label?.includes('%')) {
-                                    return value.toFixed(1) + '%';
-                                }
-                            }
-                            return value;
-                        }
-                    }
+                    beginAtZero: true
                 }
             }
         }
@@ -815,7 +804,7 @@ function importBackup() {
     document.getElementById('importFileInput').click();
 }
 
-app.handleImportBackup = function(e) {
+function handleImportBackup(e) {
     const file = e.target.files[0];
     if (!file) return;
 
@@ -839,7 +828,7 @@ app.handleImportBackup = function(e) {
     };
     reader.readAsText(file);
     e.target.value = '';
-};
+}
 
 function clearAllData() {
     if (confirm('Apakah Anda yakin ingin menghapus SEMUA data? Ini tidak bisa dibatalkan!')) {
