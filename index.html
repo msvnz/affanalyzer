@@ -1,23 +1,56 @@
-<!doctype html>
-<html lang="id"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AffAnalyzer Full</title>
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AffAnalyzer Dashboard</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head><body class="bg-light">
+<style>
+body{background:#f5f7fb}
+.stat{border-radius:16px}
+.report-card{background:#fff;border-radius:16px;padding:14px;margin-bottom:10px;border:1px solid #eee}
+.badge-profit{background:#d1fae5;color:#065f46}
+</style>
+</head>
+<body>
 <div class="container py-4">
-<h2>AffAnalyzer Full</h2>
-<div class="card p-3 mb-3">
-<label>Meta Ads CSV</label><input type="file" id="meta" class="form-control mb-2">
-<label>Shopee Click CSV</label><input type="file" id="click" class="form-control mb-2">
-<label>Commission CSV</label><input type="file" id="comm" class="form-control mb-2">
-<button class="btn btn-primary" onclick="processFiles()">Hitung KPI</button>
-<button class="btn btn-success ms-2" onclick="saveToday()">Simpan Hari Ini</button>
+<h2>AffAnalyzer</h2>
+
+<div class="row mb-3">
+<div class="col-md-3"><div class="card stat"><div class="card-body"><h6>Spend Bulan</h6><div id="spendMonth">Rp 0</div></div></div></div>
+<div class="col-md-3"><div class="card stat"><div class="card-body"><h6>Komisi Bulan</h6><div id="komisiMonth">Rp 0</div></div></div></div>
+<div class="col-md-3"><div class="card stat"><div class="card-body"><h6>Profit Bulan</h6><div id="profitMonth">Rp 0</div></div></div></div>
+<div class="col-md-3"><div class="card stat"><div class="card-body"><h6>ROI Bulan</h6><div id="roiMonth">0%</div></div></div></div>
 </div>
-<div id="kpi" class="row"></div>
-<div class="card p-3 mb-3"><canvas id="chart"></canvas></div>
-<div class="card p-3"><h4>Riwayat</h4><table class="table" id="history"></table></div>
+
+<div class="card mb-3">
+<div class="card-body">
+<h5>Input Laporan Harian</h5>
+<div class="row">
+<div class="col-md-2"><input id="tgl" type="date" class="form-control"></div>
+<div class="col-md-2"><input id="spend" type="number" class="form-control" placeholder="Biaya Iklan"></div>
+<div class="col-md-2"><input id="komisi" type="number" class="form-control" placeholder="Komisi"></div>
+<div class="col-md-2"><input id="klik" type="number" class="form-control" placeholder="Klik Shopee"></div>
+<div class="col-md-2"><input id="pesanan" type="number" class="form-control" placeholder="Pesanan"></div>
+<div class="col-md-2"><button class="btn btn-primary w-100" onclick="saveReport()">Simpan</button></div>
 </div>
+</div>
+</div>
+
+<div class="card mb-3"><div class="card-body"><canvas id="chart"></canvas></div></div>
+
+<h5>Laporan Harian</h5>
+<div id="reports"></div>
+
+</div>
+
+<div class="modal fade" id="detailModal" tabindex="-1">
+<div class="modal-dialog"><div class="modal-content">
+<div class="modal-header"><h5>Detail Laporan</h5></div>
+<div class="modal-body" id="detailBody"></div>
+</div></div></div>
+
 <script src="app.js"></script>
 </body></html>
