@@ -1,63 +1,103 @@
-
-function parseFile(file){
- return new Promise(resolve=>{
-  Papa.parse(file,{header:true,skipEmptyLines:true,complete:r=>resolve(r.data)});
- });
+function parseFile(file) {
+    return new Promise((resolve) => {
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results) {
+                resolve(results.data);
+            }
+        });
+    });
 }
 
-async function proses(){
- const meta=document.getElementById('meta').files[0];
- const click=document.getElementById('click').files[0];
- const comm=document.getElementById('comm').files[0];
+async function proses() {
 
- if(!meta||!click||!comm){alert('Upload 3 CSV');return;}
+    const meta = document.getElementById("meta").files[0];
+    const click = document.getElementById("click").files[0];
+    const comm = document.getElementById("comm").files[0];
 
- const m=await parseFile(meta);
- const c=await parseFile(click);
- const o=await parseFile(comm);
+    if (!meta || !click || !comm) {
+        alert("Upload 3 CSV terlebih dahulu");
+        return;
+    }
 
- let klikMeta=0, spend=0;
+    const metaRows = await parseFile(meta);
+    const clickRows = await parseFile(click);
+    const commRows = await parseFile(comm);
 
- m.forEach(r=>{
-   klikMeta += Number(r['Klik Tautan']||0);
-   spend += Number(r['Jumlah yang dibelanjakan (IDR)']||0);
- });
+    let klikMeta = 0;
+    let spendMeta = 0;
+    let komisiShopee = 0;
 
- const klikShopee=c.length;
- const orderan=o.length;
+    // META ADS
+    metaRows.forEach(row => {
 
- let komisi=0;
- o.forEach(r=>{
-   komisi += Number(r['Komisi Bersih Affiliate (Rp)']||0);
- });
+        const hasil =
+            parseFloat(
+                String(row["Hasil"] || "0")
+                .replace(/,/g, "")
+            ) || 0;
 
- const tgl=new Date().toLocaleDateString('id-ID');
+        const spend =
+            parseFloat(
+                String(row["Jumlah yang dibelanjakan (IDR)"] || "0")
+                .replace(/,/g, "")
+            ) || 0;
 
- document.getElementById('hasil').innerHTML=`
- <table>
- <tr>
- <th>Tanggal</th>
- <th>Klik Meta</th>
- <th>Klik Shopee</th>
- <th>Orderan Shopee</th>
- <th>Spend Meta</th>
- <th>Komisi Shopee</th>
- </tr>
- <tr>
- <td>${tgl}</td>
- <td>${klikMeta.toLocaleString('id-ID')}</td>
- <td>${klikShopee.toLocaleString('id-ID')}</td>
- <td>${orderan.toLocaleString('id-ID')}</td>
- <td>Rp${spend.toLocaleString('id-ID')}</td>
- <td>Rp${komisi.toLocaleString('id-ID')}</td>
- </tr>
- <tr>
- <th>TOTAL</th>
- <th>${klikMeta.toLocaleString('id-ID')}</th>
- <th>${klikShopee.toLocaleString('id-ID')}</th>
- <th>${orderan.toLocaleString('id-ID')}</th>
- <th>Rp${spend.toLocaleString('id-ID')}</th>
- <th>Rp${komisi.toLocaleString('id-ID')}</th>
- </tr>
- </table>`;
+        klikMeta += hasil;
+        spendMeta += spend;
+
+    });
+
+    // SHOPEE CLICK
+    const klikShopee = clickRows.length;
+
+    // ORDERAN
+    const orderanShopee = commRows.length;
+
+    // KOMISI
+    commRows.forEach(row => {
+
+        const komisi =
+            parseFloat(
+                String(row["Komisi Bersih Affiliate (Rp)"] || "0")
+                .replace(/,/g, "")
+            ) || 0;
+
+        komisiShopee += komisi;
+
+    });
+
+    const tgl = new Date().toLocaleDateString("id-ID");
+
+    document.getElementById("hasil").innerHTML = `
+        <table>
+            <tr>
+                <th>Tanggal</th>
+                <th>Klik Meta</th>
+                <th>Klik Shopee</th>
+                <th>Orderan Shopee</th>
+                <th>Spend Meta</th>
+                <th>Komisi Shopee</th>
+            </tr>
+
+            <tr>
+                <td>${tgl}</td>
+                <td>${klikMeta.toLocaleString("id-ID")}</td>
+                <td>${klikShopee.toLocaleString("id-ID")}</td>
+                <td>${orderanShopee.toLocaleString("id-ID")}</td>
+                <td>Rp ${spendMeta.toLocaleString("id-ID")}</td>
+                <td>Rp ${komisiShopee.toLocaleString("id-ID")}</td>
+            </tr>
+
+            <tr style="font-weight:bold;background:#f5f5f5;">
+                <td>TOTAL</td>
+                <td>${klikMeta.toLocaleString("id-ID")}</td>
+                <td>${klikShopee.toLocaleString("id-ID")}</td>
+                <td>${orderanShopee.toLocaleString("id-ID")}</td>
+                <td>Rp ${spendMeta.toLocaleString("id-ID")}</td>
+                <td>Rp ${komisiShopee.toLocaleString("id-ID")}</td>
+            </tr>
+        </table>
+    `;
 }
