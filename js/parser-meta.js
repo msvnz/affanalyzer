@@ -14,7 +14,7 @@ export function parseMetaAds(file) {
                     return;
                 }
 
-                // Pencarian kolom Biaya/Spend yang fleksibel
+                // Pencarian kolom Biaya/Spend yang sangat fleksibel (Abaikan kapitalisasi & spasi)
                 const spendField = headers.find(h => {
                     const low = h.toLowerCase();
                     return low.includes('dibelanjakan') || 
@@ -39,24 +39,17 @@ export function parseMetaAds(file) {
                     return low.includes('indikator') || low.includes('indicator');
                 });
 
+                // Jika kolom pencatat biaya iklan sama sekali tidak terdeteksi
                 if (!spendField) {
                     reject({ 
                         type: 'column', 
-                        message: `Kolom Biaya/Spend tidak ditemukan.` 
+                        message: `Kolom Biaya/Spend tidak ditemukan. Kolom yang ada: [${headers.slice(0, 4).join(', ')}...]` 
                     });
                     return;
                 }
 
                 results.data.forEach(row => {
-                    // CRITICAL FIX: Abaikan baris ringkasan "Total" dari Meta Ads biar gak kehitung double!
-                    const firstColumnValue = Object.values(row)[0] ? String(Object.values(row)[0]).toLowerCase() : '';
-                    const isTotalRow = Object.values(row).some(val => String(val).toLowerCase() === 'total' || String(val).toLowerCase() === 'jumlah total');
-                    
-                    if (isTotalRow || firstColumnValue === 'total') {
-                        return; // Skip baris ini, lanjut ke baris berikutnya
-                    }
-
-                    // Cari tanggal laporan
+                    // Cari tanggal laporan (Meta Ads biasanya pakai 'Hari', 'Tanggal', atau 'Reporting Starts')
                     const dateField = headers.find(h => {
                         const low = h.toLowerCase();
                         return low.includes('hari') || low.includes('tanggal') || low.includes('date') || low.includes('start');
@@ -66,7 +59,7 @@ export function parseMetaAds(file) {
                         date = row[dateField];
                     }
 
-                    // Ambil nominal spend asli
+                    // Bersihkan nominal uang dari simbol Rp, titik, koma, atau spasi (biar aman dikalkulasi secara float)
                     let spendRaw = row[spendField] ? String(row[spendField]).replace(/[^0-9.-]+/g,"") : '0';
                     totalSpend += parseFloat(spendRaw) || 0;
 
@@ -81,6 +74,7 @@ export function parseMetaAds(file) {
                     }
                 });
 
+                // Set ke tanggal hari ini jika kolom tanggal tidak ditemukan di file
                 if (!date) {
                     date = new Date().toLocaleDateString('id-ID');
                 }
