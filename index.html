@@ -81,7 +81,22 @@
                         <div class="col"><div class="card kpi-card bg-grey text-white p-3"><h6>Conversion Rate</h6><h4 id="kpi-cr">0%</h4></div></div>
                     </div>
 
-                  
+                    <!-- CHARTS -->
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                           <!--    <div class="card bg-grey text-white p-3">
+                             <h5>Keuangan Harian</h5>
+                                <canvas id="chart-keuangan"></canvas>
+                            </div> -->
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <!-- div class="card bg-grey text-white p-3">
+                                <h5>Traffic & Konversi</h5>
+                                <canvas id="chart-traffic"></canvas> 
+                            </div>-->
+                        </div>
+                    </div>
+                </section>
 
                 <!-- SECTION: UPLOAD -->
                 <section id="upload-section" class="content-section py-4 d-none">
@@ -89,15 +104,15 @@
                     <div class="card bg-grey p-4 max-width-600">
                         <div class="mb-3">
                             <label class="form-label fw-bold">1. Meta Ads Report CSV</label>
-                            <input type="file" id="file-meta" class="form-control bg-dark text-white border-secondary" placeholder="meta" accept=".csv">
+                            <input type="file" id="file-meta" class="form-control bg-dark text-white border-secondary" accept=".csv">
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">2. Website Click Report CSV (Shopee Link)</label>
-                            <input type="file" id="file-click" class="form-control bg-dark text-white border-secondary" placeholder="klik shopee" accept=".csv">
+                            <input type="file" id="file-click" class="form-control bg-dark text-white border-secondary" accept=".csv">
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">3. Affiliate Commission Report CSV</label>
-                            <input type="file" id="file-commission" class="form-control bg-dark text-white border-secondary" placeholder="komisi shopee" accept=".csv">
+                            <input type="file" id="file-commission" class="form-control bg-dark text-white border-secondary" accept=".csv">
                         </div>
                         <button id="btn-submit-laporan" class="btn btn-primary w-100 mt-3 fw-bold py-2">
                             <i class="bi bi-check-circle"></i> Submit Laporan
@@ -145,12 +160,10 @@
                                 <tr>
                                     <th>Tag</th>
                                     <th>Klik</th>
-                                   
                                     <th>Order</th>
                                     <th>Komisi</th>
                                     <th>CR</th>
                                     <th>Persentase Komisi</th>
-                                  
                                 </tr>
                             </thead>
                             <tbody id="table-tag-body">
