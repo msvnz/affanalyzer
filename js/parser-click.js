@@ -25,7 +25,7 @@ export function parseClickReport(file) {
                 if (!tagField) {
                     reject({ 
                         type: 'column', 
-                        message: `Kolom Tag Link atau Sub ID tidak ditemukan. Kolom teratas: [${headers.slice(0, 4).join(', ')}]` 
+                        message: `Kolom Tag Link atau Sub ID tidak ditemukan.` 
                     });
                     return;
                 }
@@ -34,8 +34,11 @@ export function parseClickReport(file) {
                 let tagBreakdown = {};
 
                 data.forEach(row => {
-                    // Ambil string tag, bersihkan spasi di ujungnya
                     let tag = row[tagField] ? String(row[tagField]).trim() : 'No Tag';
+                    
+                    // CRITICAL FIX: Hilangkan karakter strip beruntun (----) di ujung atau tengah tag
+                    tag = tag.replace(/---+/g, '');
+
                     if (tag === '') tag = 'No Tag';
 
                     if (!tagBreakdown[tag]) {
