@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AffAnalyzer Pro - Dashboard Affiliate & Ads</title>
+    <!-- Bootstrap 5 CSS & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- PapaParse & Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-dark text-light">
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-secondary-subtle sidebar collapse">
+                <div class="position-sticky pt-3">
+                    <h5 class="px-3 mb-4 text-primary fw-bold"><i class="bi bi-graph-up-arrow"></i> AffAnalyzer Pro</h5>
+                    <ul class="nav flex-column gap-2">
+                        <li class="nav-item">
+                            <a class="nav-link active btn-sidebar nav-target" data-target="dashboard-section" href="#">
+                                <i class="bi bi-speedometer2"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn-sidebar nav-target" data-target="upload-section" href="#">
+                                <i class="bi bi-cloud-upload"></i> Upload CSV
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn-sidebar nav-target" data-target="history-section" href="#">
+                                <i class="bi bi-history"></i> History & Rekap
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn-sidebar nav-target" data-target="tag-section" href="#">
+                                <i class="bi bi-tags"></i> Analisa Tag Link
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn-sidebar nav-target" data-target="settings-section" href="#">
+                                <i class="bi bi-gear"></i> Backup & Export
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main Content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                
+                <!-- LOADING SPINNER -->
+                <div id="loading-spinner" class="spinner-overlay d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+
+                <!-- SECTION: DASHBOARD -->
+                <section id="dashboard-section" class="content-section py-4">
+                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom border-secondary">
+                        <h2>Dashboard Performa</h2>
+                        <div id="current-report-date" class="badge bg-primary fs-6">Pilih laporan di history / upload baru</div>
+                    </div>
+
+                    <!-- KPI CARDS -->
+                    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-5 g-3 mb-4">
+                        <div class="col"><div class="card kpi-card bg-grey text-white p-3"><h6>Spend Meta</h6><h4 id="kpi-spend">Rp 0</h4></div></div>
+                        <div class="col"><div class="card kpi-card bg-grey text-white p-3"><h6>Klik Meta</h6><h4 id="kpi-klik-meta">0</h4></div></div>
+                        <div class="col"><div class="card kpi-card bg-grey text-white p-3"><h6>Klik Shopee</h6><h4 id="kpi-klik-shopee">0</h4></div></div>
+                        <div class="col"><div class="card kpi-card bg-grey text-white p-3"><h6>Order Shopee</h6><h4 id="kpi-order">0</h4></div></div>
+                        <div class="col"><div class="card kpi-card bg-grey text-white p-3"><h6>Komisi Shopee</h6><h4 id="kpi-komisi">Rp 0</h4></div></div>
+                        <div class="col"><div class="card kpi-card bg-grey text-white p-3"><h6>Profit</h6><h4 id="kpi-profit">Rp 0</h4></div></div>
+                        <div class="col"><div class="card kpi-card bg-grey text-white p-3"><h6>ROI</h6><h4 id="kpi-roi">0%</h4></div></div>
+                        <div class="col"><div class="card kpi-card bg-grey text-white p-3"><h6>ROAS</h6><h4 id="kpi-roas">0x</h4></div></div>
+                        <div class="col"><div class="card kpi-card bg-grey text-white p-3"><h6>CPC</h6><h4 id="kpi-cpc">Rp 0</h4></div></div>
+                        <div class="col"><div class="card kpi-card bg-grey text-white p-3"><h6>Conversion Rate</h6><h4 id="kpi-cr">0%</h4></div></div>
+                    </div>
+
+                    <!-- CHARTS -->
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <div class="card bg-grey text-white p-3">
+                                <h5>Keuangan Harian</h5>
+                                <canvas id="chart-keuangan"></canvas>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-4">
+                            <div class="card bg-grey text-white p-3">
+                                <h5>Traffic & Konversi</h5>
+                                <canvas id="chart-traffic"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECTION: UPLOAD -->
+                <section id="upload-section" class="content-section py-4 d-none">
+                    <h2 class="mb-4 border-bottom border-secondary pb-2">Upload Laporan CSV</h2>
+                    <div class="card bg-grey p-4 max-width-600">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">1. Meta Ads Report CSV</label>
+                            <input type="file" id="file-meta" class="form-control bg-dark text-white border-secondary" accept=".csv">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">2. Website Click Report CSV (Shopee Link)</label>
+                            <input type="file" id="file-click" class="form-control bg-dark text-white border-secondary" accept=".csv">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">3. Affiliate Commission Report CSV</label>
+                            <input type="file" id="file-commission" class="form-control bg-dark text-white border-secondary" accept=".csv">
+                        </div>
+                        <button id="btn-submit-laporan" class="btn btn-primary w-100 mt-3 fw-bold py-2">
+                            <i class="bi bi-check-circle"></i> Submit Laporan
+                        </button>
+                    </div>
+                </section>
+
+                <!-- SECTION: HISTORY -->
+                <section id="history-section" class="content-section py-4 d-none">
+                    <h2 class="mb-4 border-bottom border-secondary pb-2">History Laporan & Rekap Bulanan</h2>
+                    
+                    <h4 class="mb-3">List Laporan</h4>
+                    <div id="history-container" class="row row-cols-1 row-cols-md-3 g-3 mb-5">
+                        <!-- Card history di-inject via JS -->
+                    </div>
+
+                    <h4 class="mb-3">Rekap Bulanan</h4>
+                    <div class="table-responsive card bg-grey p-3">
+                        <table class="table table-dark table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Tanggal</th>
+                                    <th>Klik Meta</th>
+                                    <th>Klik Shopee</th>
+                                    <th>Order</th>
+                                    <th>Spend</th>
+                                    <th>Komisi</th>
+                                    <th>Profit</th>
+                                    <th>ROI</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-rekap-body">
+                                <!-- Data rekap di-inject via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- SECTION: ANALISA TAG -->
+                <section id="tag-section" class="content-section py-4 d-none">
+                    <h2 class="mb-4 border-bottom border-secondary pb-2">Analisa Tag Link (Sub_ID / Tag_link1)</h2>
+                    <div class="table-responsive card bg-grey p-3">
+                        <table class="table table-dark table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Tag</th>
+                                    <th>Klik</th>
+                                    <th>Order</th>
+                                    <th>Komisi</th>
+                                    <th>CR</th>
+                                    <th>Persentase Komisi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-tag-body">
+                                <!-- Data analisa tag di-inject via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- SECTION: SETTINGS / EXPORT -->
+                <section id="settings-section" class="content-section py-4 d-none">
+                    <h2 class="mb-4 border-bottom border-secondary pb-2">Backup, Export & Import Data</h2>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="card bg-grey p-3 text-center">
+                                <h5>Export CSV Rekap</h5>
+                                <button id="btn-export-csv" class="btn btn-outline-success mt-2"><i class="bi bi-filetype-csv"></i> Download CSV</button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-grey p-3 text-center">
+                                <h5>Backup Database (JSON)</h5>
+                                <button id="btn-export-json" class="btn btn-outline-info mt-2"><i class="bi bi-filetype-json"></i> Download JSON Backup</button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-grey p-3 text-center">
+                                <h5>Restore Database (JSON)</h5>
+                                <input type="file" id="file-import-json" class="form-control bg-dark text-white border-secondary mt-2 mb-2" accept=".json">
+                                <button id="btn-import-json" class="btn btn-danger w-100"><i class="bi bi-cloud-arrow-up"></i> Import JSON</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="liveToast" class="toast align-items-center text-white bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toast-message">Notification text.</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DETAIL -->
+    <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content bg-grey text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title" id="detailModalLabel">Detail Laporan</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3 mb-4">
+                        <div class="col-6"><strong>Tanggal:</strong> <span id="md-tanggal"></span></div>
+                        <div class="col-6"><strong>Spend Meta:</strong> <span id="md-spend"></span></div>
+                        <div class="col-6"><strong>Klik Meta:</strong> <span id="md-klik-meta"></span></div>
+                        <div class="col-6"><strong>Klik Shopee:</strong> <span id="md-klik-shopee"></span></div>
+                        <div class="col-6"><strong>Order:</strong> <span id="md-order"></span></div>
+                        <div class="col-6"><strong>Komisi:</strong> <span id="md-komisi"></span></div>
+                        <div class="col-6"><strong>Profit:</strong> <span id="md-profit"></span></div>
+                        <div class="col-6"><strong>ROI:</strong> <span id="md-roi"></span></div>
+                        <div class="col-6"><strong>CPC:</strong> <span id="md-cpc"></span></div>
+                        <div class="col-6"><strong>CR:</strong> <span id="md-cr"></span></div>
+                    </div>
+                    <hr class="border-secondary">
+                    <h6>Breakdown Tag Link pada hari ini:</h6>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-sm">
+                            <thead>
+                                <tr><th>Tag</th><th>Klik</th><th>Order</th><th>Komisi</th></tr>
+                            </thead>
+                            <tbody id="md-tag-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Entry Point App Modul -->
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
