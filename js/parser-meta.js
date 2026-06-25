@@ -9,43 +9,80 @@ export function parseMetaAds(file) {
                 let date = '';
 
                 const headers = results.meta.fields;
-                
-                // Cari kolom spend secara fleksibel
-                const spendField = headers.find(h => h.includes('Jumlah yang dibelanjakan') || h.toLowerCase().includes('spend') || h.includes('IDR'));
-                // Cari kolom hasil / klik
-                const resultField = headers.find(h => h.toLowerCase().includes('hasil') || h.toLowerCase().includes('results') || h.toLowerCase().includes('klik tautan'));
-                const indicatorField = headers.find(h => h.toLowerCase().includes('indikator hasil') || h.toLowerCase().includes('result indicator'));
+                if (!headers || headers.length === 0) {
+                    reject({ type: 'format', message: 'File CSV kosong atau tidak memiliki header.' });
+                    return;
+                }
 
+                // Pencarian kolom Biaya/Spend yang sangat fleksibel (Abaikan kapitalisasi & spasi)
+                const spendField = headers.find(h => {
+                    const low = h.toLowerCase();
+                    return low.includes('dibelanjakan') || 
+                           low.includes('spend') || 
+                           low.includes('biaya') || 
+                           low.includes('amount') ||
+                           (low.includes('idr') && (low.includes('jumlah') || low.includes('total')));
+                });
+
+                // Pencarian kolom Hasil/Klik Tautan secara fleksibel
+                const resultField = headers.find(h => {
+                    const low = h.toLowerCase();
+                    return low.includes('hasil') || 
+                           low.includes('results') || 
+                           low.includes('klik tautan') || 
+                           low.includes('link click') ||
+                           low.includes('clicks');
+                });
+
+                const indicatorField = headers.find(h => {
+                    const low = h.toLowerCase();
+                    return low.includes('indikator') || low.includes('indicator');
+                });
+
+                // Jika kolom pencatat biaya iklan sama sekali tidak terdeteksi
                 if (!spendField) {
-                    reject({ type: 'column', message: 'Jumlah yang dibelanjakan (Spend)' });
+                    reject({ 
+                        type: 'column', 
+                        message: `Kolom Biaya/Spend tidak ditemukan. Kolom yang ada: [${headers.slice(0, 4).join(', ')}...]` 
+                    });
                     return;
                 }
 
                 results.data.forEach(row => {
-                    // Ambil tanggal
-                    if(row['Hari'] || row['Tanggal'] || row['Reporting Starts'] || row['Mulai Pelaporan']) {
-                        date = row['Hari'] || row['Tanggal'] || row['Reporting Starts'] || row['Mulai Pelaporan'];
+                    // Cari tanggal laporan (Meta Ads biasanya pakai 'Hari', 'Tanggal', atau 'Reporting Starts')
+                    const dateField = headers.find(h => {
+                        const low = h.toLowerCase();
+                        return low.includes('hari') || low.includes('tanggal') || low.includes('date') || low.includes('start');
+                    });
+                    
+                    if (dateField && row[dateField]) {
+                        date = row[dateField];
                     }
 
-                    // Bersihkan nominal uang dari simbol Rp atau titik koma bawaan Excel
-                    let spendVal = String(row[spendField] || '0').replace(/[^0-9.-]+/g,"");
-                    totalSpend += parseFloat(spendVal) || 0;
+                    // Bersihkan nominal uang dari simbol Rp, titik, koma, atau spasi (biar aman dikalkulasi secara float)
+                    let spendRaw = row[spendField] ? String(row[spendField]).replace(/[^0-9.-]+/g,"") : '0';
+                    totalSpend += parseFloat(spendRaw) || 0;
 
-                    // Hitung Klik Tautan
-                    if (indicatorField && resultField) {
-                        if (String(row[indicatorField]).toLowerCase().includes('link_click') || String(row[indicatorField]).toLowerCase().includes('klik tautan')) {
+                    // Kalkulasi jumlah Klik Tautan
+                    if (indicatorField && resultField && row[indicatorField]) {
+                        const indValue = String(row[indicatorField]).toLowerCase();
+                        if (indValue.includes('link_click') || indValue.includes('klik tautan') || indValue.includes('tautan')) {
                             totalClicks += parseInt(row[resultField]) || 0;
                         }
-                    } else if (resultField) {
+                    } else if (resultField && row[resultField]) {
                         totalClicks += parseInt(row[resultField]) || 0;
                     }
                 });
 
-                // Standardisasi format tanggal dari Meta (YYYY-MM-DD ke format lokal jika perlu)
+                // Set ke tanggal hari ini jika kolom tanggal tidak ditemukan di file
+                if (!date) {
+                    date = new Date().toLocaleDateString('id-ID');
+                }
+
                 resolve({
                     spend: totalSpend,
                     clicks: totalClicks,
-                    date: date || new Date().toLocaleDateString('id-ID')
+                    date: date
                 });
             },
             error: function(err) {
